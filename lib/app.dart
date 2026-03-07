@@ -4,8 +4,10 @@ import 'app_bar.dart';
 import 'drawer.dart';
 import 'navigation_bar.dart';
 import 'Pages/dashboard_page.dart';
+import 'Pages/login_page.dart';
 import 'Pages/profile_page.dart';
 import 'Pages/settings_page.dart';
+import 'services/auth_service.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -16,13 +18,10 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   int _selectedIndex = 0;
+  bool _isAuthenticated = false;
+  String? _loggedInUser;
 
-  // this method updates the new selected index of the navigation bar
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+  final AuthService _authService = AuthService();
 
   // the pages we have in our app
   final List _pages = [
@@ -31,6 +30,28 @@ class _MyAppState extends State<MyApp> {
     const ProfilePage(),
     const SettingsPage(),
   ];
+
+  void _onLogin(String username) {
+    setState(() {
+      _isAuthenticated = true;
+      _loggedInUser = username;
+      _selectedIndex = 0;
+    });
+  }
+
+  void _onLogout() {
+    setState(() {
+      _isAuthenticated = false;
+      _loggedInUser = null;
+      _selectedIndex = 0;
+    });
+  }
+
+  @override
+  void dispose() {
+    _authService.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,19 +64,26 @@ class _MyAppState extends State<MyApp> {
           surface: Colors.grey[200]!,
         ),
       ),
-      
-  // this is the main scaffold of our app, it contains the app bar, drawer, body and navigation bar
-      home: Scaffold(
-        appBar: buildAppBar(),
-        //drawer: buildDrawer(),
-        body: _pages[_selectedIndex],        
-        bottomNavigationBar: SizedBox(
-          height: 100,
-          child: buildNavigationBar(_selectedIndex, (int index) {
-            setState(() => _selectedIndex = index);
-          }),
-        ),
-      ),
+      home: _isAuthenticated
+          // this is the main scaffold of our app, it contains the app bar, drawer, body and navigation bar
+          ? Scaffold(
+              appBar: buildAppBar(
+                loggedInUser: _loggedInUser,
+                onLogout: _onLogout,
+              ),
+              //drawer: buildDrawer(),
+              body: _pages[_selectedIndex],
+              bottomNavigationBar: SizedBox(
+                height: 100,
+                child: buildNavigationBar(_selectedIndex, (int index) {
+                  setState(() => _selectedIndex = index);
+                }),
+              ),
+            )
+          : LoginPage(
+              authService: _authService,
+              onLogin: _onLogin,
+            ),
     );
   }
 }
